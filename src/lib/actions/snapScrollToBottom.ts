@@ -4,13 +4,22 @@ import { get } from "svelte/store";
 
 const detachedOffset = 10;
 
+type SnapScrollToBottomOptions = {
+	/** Pass in a dependency to update scroll on changes. */
+	dependency: unknown;
+	/** Controls whether the snapping is enabled */
+	enabled?: boolean;
+};
 /**
  * @param node element to snap scroll to bottom
- * @param dependency pass in a dependency to update scroll on changes.
+ * @param options for scroll snapping
  */
-export const snapScrollToBottom = (node: HTMLElement, dependency: unknown) => {
+export const snapScrollToBottom = (
+	node: HTMLElement,
+	{ dependency, enabled = true }: SnapScrollToBottomOptions
+) => {
 	let prevScrollValue = node.scrollTop;
-	let isDetached = false;
+	let isDetached = !enabled;
 
 	const handleScroll = () => {
 		// if user scrolled up, we detach
@@ -26,12 +35,9 @@ export const snapScrollToBottom = (node: HTMLElement, dependency: unknown) => {
 		prevScrollValue = node.scrollTop;
 	};
 
-	const updateScroll = async (_options: { force?: boolean } = {}) => {
-		const defaultOptions = { force: false };
-		const options = { ...defaultOptions, ..._options };
-		const { force } = options;
-
-		if (!force && isDetached && !get(navigating)) return;
+	const updateScroll = async (opts: { force?: boolean; enabled?: boolean } = {}) => {
+		// enabled = opts.enabled ?? enabled;
+		if (!opts.force && (isDetached || !enabled) && !get(navigating)) return;
 
 		// wait for next tick to ensure that the DOM is updated
 		await tick();

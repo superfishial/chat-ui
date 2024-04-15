@@ -26,6 +26,7 @@
 
 	let loading = false;
 	let pending = false;
+	let generatedCharsPerSecond: number | undefined;
 
 	let files: File[] = [];
 
@@ -208,6 +209,7 @@
 
 			files = [];
 
+			let startTimeMS = performance.now();
 			const messageUpdates: MessageUpdate[] = [];
 			for await (const update of messageUpdatesIterator) {
 				if ($isAborted) {
@@ -247,6 +249,10 @@
 					error.set(update.message);
 					messageUpdatesAbortController.abort();
 				}
+
+				generatedCharsPerSecond =
+					(messageToWriteTo.content.length / (performance.now() - startTimeMS)) * 1000;
+				// console.log(generatedCharsPerSecond);
 			}
 
 			messageToWriteTo.updates = messageUpdates;
@@ -378,6 +384,7 @@
 <ChatWindow
 	{loading}
 	{pending}
+	{generatedCharsPerSecond}
 	{messages}
 	shared={data.shared}
 	preprompt={data.preprompt}

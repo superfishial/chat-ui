@@ -36,6 +36,7 @@
 	export let messages: Message[] = [];
 	export let loading = false;
 	export let pending = false;
+	export let generatedCharsPerSecond: number = 0;
 
 	export let shared = false;
 	export let currentModel: Model;
@@ -134,7 +135,10 @@
 	{/if}
 	<div
 		class="scrollbar-custom mr-1 h-full overflow-y-auto"
-		use:snapScrollToBottom={messages.length ? [...messages] : false}
+		use:snapScrollToBottom={{
+			dependency: messages.length ? [...messages, generatedCharsPerSecond] : false,
+			enabled: generatedCharsPerSecond < 20,
+		}}
 		bind:this={chatContainer}
 	>
 		<div class="mx-auto flex h-full max-w-3xl flex-col gap-6 px-5 pt-6 sm:gap-8 xl:max-w-4xl">
