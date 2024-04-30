@@ -1,4 +1,8 @@
-import { JSDOM, VirtualConsole } from "jsdom";
+import { originalParse } from "./parsing/parse";
+import { initPlaywrightService, loadPage } from "./parsing/playwright";
+import { spatialParsing } from "./parsing/spatialParsing";
+
+const playwright = await initPlaywrightService({});
 
 export async function parseWeb(url: string) {
 	const abortController = new AbortController();
@@ -6,28 +10,16 @@ export async function parseWeb(url: string) {
 	const r = await fetch(url, { signal: abortController.signal, credentials: "omit" }).catch();
 
 	if (r.headers.get("content-type")?.includes("text/html")) {
-		const virtualConsole = new VirtualConsole();
-		virtualConsole.on("error", () => {
-			// No-op to skip console errors.
-		});
+		const page = await loadPage(playwright)(url);
 
-		// put the html string into a DOM
-		const dom = new JSDOM((await r.text()) ?? "", {
-			virtualConsole,
-		});
+		const [text, spatial] = await Promise.all([
+			page.evaluate(originalParse).catch((e) => console.warn(e)),
+			page.evaluate(spatialParsing),
+		]);
 
-		const { document } = dom.window;
-		const paragraphs = document.querySelectorAll("p, table, pre, ul, ol");
+		console.log("\n\nOriginal Text\n\n", text, "\n\nSpatial Text\n\n", spatial);
 
-		if (!paragraphs.length) {
-			throw new Error(`webpage doesn't have any parseable element`);
-		}
-		const paragraphTexts = Array.from(paragraphs).map((p) => p.textContent);
-
-		// combine text contents from paragraphs and then remove newlines and multiple spaces
-		const text = paragraphTexts.join(" ").replace(/ {2}|\r\n|\n|\r/gm, "");
-
-		return text;
+		return spatial;
 	} else if (
 		r.headers.get("content-type")?.includes("text/plain") ||
 		r.headers.get("content-type")?.includes("text/markdown")
